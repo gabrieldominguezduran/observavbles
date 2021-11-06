@@ -25,12 +25,15 @@ export class PostsListComponent {
     let errorResponse: any;
     const userId = this.localStorageService.get('user_id');
     if (userId) {
-      try {
-        this.posts = await this.postService.getPostsByUserId(userId);
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+      this.postService.getPostsByUserId(userId).subscribe(
+        (res) => {
+          this.posts = res;
+        },
+        (error) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
+        }
+      );
     }
   }
 
@@ -44,19 +47,23 @@ export class PostsListComponent {
 
   async deletePost(postId: string): Promise<void> {
     let errorResponse: any;
+    let rowsAffected: any;
 
     // show confirmation popup
     let result = confirm('Confirm delete post with id: ' + postId + ' .');
     if (result) {
-      try {
-        const rowsAffected = await this.postService.deletePost(postId);
-        if (rowsAffected.affected > 0) {
-          this.loadPosts();
+      this.postService.deletePost(postId).subscribe(
+        (res) => {
+          rowsAffected = res;
+          if (rowsAffected.affected > 0) {
+            this.loadPosts();
+          }
+        },
+        (error) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
         }
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+      );
     }
   }
 }

@@ -26,14 +26,15 @@ export class CategoriesListComponent {
     let errorResponse: any;
     const userId = this.localStorageService.get('user_id');
     if (userId) {
-      try {
-        this.categories = await this.categoryService.getCategoriesByUserId(
-          userId
-        );
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+      this.categoryService.getCategoriesByUserId(userId).subscribe(
+        (res) => {
+          this.categories = res;
+        },
+        (error) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
+        }
+      );
     }
   }
 
@@ -47,23 +48,25 @@ export class CategoriesListComponent {
 
   async deleteCategory(categoryId: string): Promise<void> {
     let errorResponse: any;
+    let rowsAffected: any;
 
     // show confirmation popup
     let result = confirm(
       'Confirm delete category with id: ' + categoryId + ' .'
     );
     if (result) {
-      try {
-        const rowsAffected = await this.categoryService.deleteCategory(
-          categoryId
-        );
-        if (rowsAffected.affected > 0) {
-          this.loadCategories();
+      this.categoryService.deleteCategory(categoryId).subscribe(
+        (res) => {
+          rowsAffected = res;
+          if (rowsAffected.affected > 0) {
+            this.loadCategories();
+          }
+        },
+        (error) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
         }
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+      );
     }
   }
 }

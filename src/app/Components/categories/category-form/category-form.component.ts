@@ -6,6 +6,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
@@ -71,26 +72,27 @@ export class CategoryFormComponent implements OnInit {
     // update
     if (this.categoryId) {
       this.isUpdateMode = true;
-      try {
-        this.category = await this.categoryService.getCategoryById(
-          this.categoryId
-        );
+      this.categoryService.getCategoryById(this.categoryId).subscribe(
+        (res) => {
+          this.category = res;
 
-        this.title.setValue(this.category.title);
+          this.title.setValue(this.category.title);
 
-        this.description.setValue(this.category.description);
+          this.description.setValue(this.category.description);
 
-        this.css_color.setValue(this.category.css_color);
+          this.css_color.setValue(this.category.css_color);
 
-        this.categoryForm = this.formBuilder.group({
-          title: this.title,
-          description: this.description,
-          css_color: this.css_color,
-        });
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+          this.categoryForm = this.formBuilder.group({
+            title: this.title,
+            description: this.description,
+            css_color: this.css_color,
+          });
+        },
+        (error) => {
+          errorResponse = error.error;
+          this.sharedService.errorLog(errorResponse);
+        }
+      );
     }
   }
 
@@ -101,26 +103,27 @@ export class CategoryFormComponent implements OnInit {
       const userId = this.localStorageService.get('user_id');
       if (userId) {
         this.category.userId = userId;
-        try {
-          await this.categoryService.updateCategory(
-            this.categoryId,
-            this.category
+        this.categoryService
+          .updateCategory(this.categoryId, this.category)
+          .pipe(
+            finalize(async () => {
+              await this.sharedService.managementToast(
+                'categoryFeedback',
+                responseOK,
+                errorResponse
+              );
+              this.router.navigateByUrl('categories');
+            })
+          )
+          .subscribe(
+            () => {
+              responseOK = true;
+            },
+            (error) => {
+              errorResponse = error.error;
+              this.sharedService.errorLog(errorResponse);
+            }
           );
-          responseOK = true;
-        } catch (error: any) {
-          errorResponse = error.error;
-          this.sharedService.errorLog(errorResponse);
-        }
-
-        await this.sharedService.managementToast(
-          'categoryFeedback',
-          responseOK,
-          errorResponse
-        );
-
-        if (responseOK) {
-          this.router.navigateByUrl('categories');
-        }
       }
     }
     return responseOK;
@@ -132,23 +135,27 @@ export class CategoryFormComponent implements OnInit {
     const userId = this.localStorageService.get('user_id');
     if (userId) {
       this.category.userId = userId;
-      try {
-        await this.categoryService.createCategory(this.category);
-        responseOK = true;
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
-
-      await this.sharedService.managementToast(
-        'categoryFeedback',
-        responseOK,
-        errorResponse
-      );
-
-      if (responseOK) {
-        this.router.navigateByUrl('categories');
-      }
+      this.categoryService
+        .createCategory(this.category)
+        .pipe(
+          finalize(async () => {
+            await this.sharedService.managementToast(
+              'categoryFeedback',
+              responseOK,
+              errorResponse
+            );
+            this.router.navigateByUrl('categories');
+          })
+        )
+        .subscribe(
+          () => {
+            responseOK = true;
+          },
+          (error) => {
+            errorResponse = error.error;
+            this.sharedService.errorLog(errorResponse);
+          }
+        );
     }
 
     return responseOK;
